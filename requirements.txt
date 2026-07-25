@@ -4,3 +4,4 @@ proxmoxer
 uvicorn
 websockets
 python-dotenv
+jinja2
