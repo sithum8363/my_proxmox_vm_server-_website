@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>System Offline | Proxmox Cloud Panel</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="maintenance-body">
+    <main class="maintenance-card" role="main">
+        <div class="offline-icon" aria-hidden="true">!</div>
+        <p class="maintenance-label">SERVICE STATUS</p>
+        <h1>The system is offline</h1>
+        <p class="maintenance-message">
+            The Proxmox server is currently unavailable or under maintenance.
+            Please try again in a few minutes.
+        </p>
+
+        <div class="maintenance-actions">
+            <button type="button" class="retry-button" onclick="window.location.reload()">
+                Try again
+            </button>
+            <a
+                class="whatsapp-button"
+                href="https://wa.me/{{ support_whatsapp_number }}?text=Hello%2C%20the%20Proxmox%20server%20appears%20to%20be%20offline.%20Please%20check%20it."
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                Contact support on WhatsApp
+            </a>
+        </div>
+
+        <p class="maintenance-help">If the problem continues, please send us a WhatsApp message.</p>
+    </main>
+</body>
+</html>

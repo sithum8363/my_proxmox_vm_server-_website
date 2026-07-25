@@ -1,0 +1,6 @@
+fastapi
+itsdangerous
+proxmoxer
+uvicorn
+websockets
+python-dotenv

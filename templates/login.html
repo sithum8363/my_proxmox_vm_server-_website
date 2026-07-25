@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign in - Proxmox Cloud Panel</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <main class="login-container">
+        <form class="card login-card" id="loginForm">
+            <h1>Proxmox Cloud Panel</h1>
+            <p>Sign in with your Proxmox account.</p>
+            <label for="username">Proxmox username</label>
+            <input id="username" autocomplete="username" placeholder="user@pam" required>
+            <label for="password">Password</label>
+            <input id="password" type="password" autocomplete="current-password" required>
+            <p class="form-error" id="loginError" hidden></p>
+            <button type="submit">Sign in</button>
+        </form>
+    </main>
+    <script>
+        document.getElementById("loginForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const error = document.getElementById("loginError");
+            error.hidden = true;
+
+            const response = await fetch("/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: document.getElementById("username").value,
+                    password: document.getElementById("password").value,
+                }),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                error.textContent = result.detail || "Could not sign in.";
+                error.hidden = false;
+                return;
+            }
+            window.location.href = "/";
+        });
+    </script>
+</body>
+</html>

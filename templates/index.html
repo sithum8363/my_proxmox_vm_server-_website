@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Proxmox Cloud Panel</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="page-header">
+        <h1>Proxmox Cloud Panel</h1>
+        <div class="user-menu">
+            <span id="currentUser"></span>
+            <button class="logout-button" onclick="logout()">Log out</button>
+        </div>
+    </div>
+
+    <!-- Create VM -->
+    <div class="card">
+
+        <h2>Create VM</h2>
+
+        <input id="vmname" placeholder="VM Name">
+        <input id="vmid" placeholder="VM ID">
+
+        <button onclick="createVM()">
+            Create VM
+        </button>
+
+    </div>
+
+    <!-- VM List -->
+    <div class="card">
+
+        <h2>Virtual Machines</h2>
+        <p id="capacity">Loading safe memory capacity...</p>
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>CPU</th>
+                    <th>Memory</th>
+                    <th>Console</th>
+                    <th>Power</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody id="vmTable"></tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<script src="/static/app.js?v=10"></script>
+
+</body>
+</html>

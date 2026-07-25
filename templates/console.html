@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>VM Console</title>
+
+    <style>
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #screen {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="screen"></div>
+
+<script type="module">
+    import RFB from "/static/novnc/core/rfb.js";
+
+    const params = new URLSearchParams(window.location.search);
+
+    const ticket = params.get("ticket");
+    const port = params.get("port");
+
+    const rfb = new RFB(
+        document.getElementById("screen"),
+        `wss://192.168.1.18:8006/api2/json/nodes/proxmox/qemu/${port}/vncwebsocket?port=${port}&vncticket=${encodeURIComponent(ticket)}`
+    );
+
+    rfb.scaleViewport = true;
+    rfb.resizeSession = true;
+</script>
+
+</body>
+</html>
