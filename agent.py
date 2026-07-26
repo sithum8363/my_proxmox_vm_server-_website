@@ -1,7 +1,7 @@
 """Home-network Proxmox agent.
 
 Run this only on the Ubuntu management VM.  Publish it through Cloudflare
-Tunnel and require both Cloudflare Access and AGENT_SHARED_SECRET.
+Tunnel and require both Cloudflare Access and AGENT_SHARED_SECRET  ;';.
 """
 import asyncio
 import logging
