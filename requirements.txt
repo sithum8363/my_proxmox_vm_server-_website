@@ -5,3 +5,4 @@ uvicorn
 websockets
 python-dotenv
 jinja2
+requests

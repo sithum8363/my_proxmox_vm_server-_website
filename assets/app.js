@@ -21,19 +21,7 @@ async function openConsole(vmid) {
         return;
     }
 
-    const useEncryption = window.location.protocol === "https:" ? "1" : "0";
-    const port = window.location.port || (useEncryption === "1" ? "443" : "80");
-    const websocketPath = `ws/console/${vmid}?connection_id=${data.connection_id}`;
-    const url =
-        `/novnc/vnc.html` +
-        `?autoconnect=1` +
-        `&encrypt=${useEncryption}` +
-        `&host=${window.location.hostname}` +
-        `&port=${port}` +
-        `&path=${encodeURIComponent(websocketPath)}` +
-        `#password=${encodeURIComponent(data.vnc_password)}`;
-
-    window.open(url, "_blank");
+    window.open(data.console_url, "_blank", "noopener");
 }
 
 async function loadVMs() {
