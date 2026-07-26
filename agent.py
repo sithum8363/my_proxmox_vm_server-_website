@@ -89,13 +89,10 @@ def host_memory_bytes(proxmox: ProxmoxAPI) -> int:
 
 def create_vnc_connection(proxmox: ProxmoxAPI, vmid: int) -> tuple[str, str, str]:
     console = proxmox.nodes(PVE_NODE).qemu(vmid).vncproxy.post(websocket=1, **{"generate-password": 1})
-    auth_ticket, _ = proxmox.get_tokens()
-    if not auth_ticket:
-        raise HTTPException(status_code=502, detail="Could not obtain a Proxmox console ticket")
     query = urlencode({"port": console["port"], "vncticket": console["ticket"]})
     return (
         f"wss://{PVE_HOST}:{PVE_PORT}/api2/json/nodes/{PVE_NODE}/qemu/{vmid}/vncwebsocket?{query}",
-        auth_ticket,
+        f"PVEAPIToken={PVE_API_USER}!{PVE_TOKEN_NAME}={PVE_TOKEN_VALUE}",
         console.get("password", console["ticket"]),
     )
 
@@ -175,10 +172,10 @@ def console(vmid: int):
         raise HTTPException(status_code=409, detail="Start the VM before opening its console")
     if not PUBLIC_BASE_URL:
         raise HTTPException(status_code=503, detail="PUBLIC_BASE_URL is not configured")
-    websocket_url, auth_ticket, vnc_password = create_vnc_connection(proxmox, vmid)
+    websocket_url, authorization, vnc_password = create_vnc_connection(proxmox, vmid)
     connection_id = secrets.token_urlsafe(32)
     with console_connections_lock:
-        console_connections[connection_id] = (websocket_url, auth_ticket, time.monotonic())
+        console_connections[connection_id] = (websocket_url, authorization, time.monotonic())
     path = urlencode({"autoconnect": 1, "path": f"ws/console/{vmid}?connection_id={connection_id}"})
     return {"console_url": f"{PUBLIC_BASE_URL}/novnc/vnc.html?{path}#password={quote(vnc_password, safe='')}"}
 
@@ -192,9 +189,10 @@ async def console_websocket(websocket: WebSocket, vmid: int):
         await websocket.close(code=1008)
         return
     await websocket.accept()
-    websocket_url, auth_ticket, _ = entry
+    websocket_url, authorization, _ = entry
     try:
-        async with connect(websocket_url, ssl=ssl._create_unverified_context(), origin=f"https://{PVE_HOST}:{PVE_PORT}", additional_headers={"Cookie": f"PVEAuthCookie={auth_ticket}"}) as pve_socket:
+        ssl_context = ssl.create_default_context() if PVE_VERIFY_SSL else ssl._create_unverified_context()
+        async with connect(websocket_url, ssl=ssl_context, origin=f"https://{PVE_HOST}:{PVE_PORT}", additional_headers={"Authorization": authorization}) as pve_socket:
             async def browser_to_pve():
                 while True:
                     message = await websocket.receive()
