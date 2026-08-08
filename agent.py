@@ -484,7 +484,7 @@ def console(vmid: int, request: Request):
         }
     )
     console_url = (
-        f"{PUBLIC_BASE_URL}/novnc/vnc.html?{query}"
+        f"{PUBLIC_BASE_URL}/novnc/vnc_lite.html?{query}"
         f"#password={quote(vnc_password, safe='')}"
     )
     return {"console_url": console_url}
