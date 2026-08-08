@@ -176,7 +176,7 @@ def console(vmid: int):
     connection_id = secrets.token_urlsafe(32)
     with console_connections_lock:
         console_connections[connection_id] = (websocket_url, authorization, time.monotonic())
-    path = urlencode({"autoconnect": 1, "path": f"ws/console/{vmid}?connection_id={connection_id}"})
+    path = urlencode({"autoconnect": 1, "path": f"/ws/console/{vmid}?connection_id={connection_id}"})
     return {"console_url": f"{PUBLIC_BASE_URL}/novnc/vnc.html?{path}#password={quote(vnc_password, safe='')}"}
 
 
