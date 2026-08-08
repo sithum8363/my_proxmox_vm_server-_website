@@ -478,6 +478,8 @@ def console(vmid: int, request: Request):
     query = urlencode(
         {
             "autoconnect": 1,
+             "reconnect": 0,
+            "logging": "debug",
             "path": f"/ws/console/{vmid}?connection_id={connection_id}",
         }
     )
