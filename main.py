@@ -32,8 +32,6 @@ AGENT_URL = os.getenv("AGENT_URL", "").rstrip("/")
 AGENT_SHARED_SECRET = os.getenv("AGENT_SHARED_SECRET", "")
 CF_ACCESS_CLIENT_ID = os.getenv("CF_ACCESS_CLIENT_ID", "")
 CF_ACCESS_CLIENT_SECRET = os.getenv("CF_ACCESS_CLIENT_SECRET", "")
-PANEL_USERNAME = os.getenv("PANEL_USERNAME", "")
-PANEL_PASSWORD = os.getenv("PANEL_PASSWORD", "")
 SUPPORT_WHATSAPP_NUMBER = os.getenv("SUPPORT_WHATSAPP_NUMBER", "94779304675")
 
 
@@ -44,19 +42,36 @@ class LoginRequest(BaseModel):
 
 def require_login(request: Request) -> str:
     username = request.session.get("username")
-    if not username:
+    agent_session = request.session.get("agent_session")
+
+    if not username or not agent_session:
         raise HTTPException(status_code=401, detail="Please sign in")
-    return username
+    return username,agent_session
 
 
-def agent_request(method: str, path: str, **kwargs: Any) -> requests.Response:
-    """Call the Ubuntu agent.  The agent secret never reaches the browser."""
+def agent_request(
+    method: str,
+    path: str,
+    user_session: str | None = None,
+    **kwargs: Any,
+) -> requests.Response:
     if not AGENT_URL or not AGENT_SHARED_SECRET:
-        raise HTTPException(status_code=503, detail="The management agent is not configured")
-    headers = {"Authorization": f"Bearer {AGENT_SHARED_SECRET}"}
+        raise HTTPException(
+            status_code=503,
+            detail="The management agent is not configured",
+        )
+
+    headers = {
+        "Authorization": f"Bearer {AGENT_SHARED_SECRET}",
+    }
+
+    if user_session:
+        headers["X-User-Session"] = user_session
+
     if CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET:
         headers["CF-Access-Client-Id"] = CF_ACCESS_CLIENT_ID
         headers["CF-Access-Client-Secret"] = CF_ACCESS_CLIENT_SECRET
+
     try:
         return requests.request(
             method,
@@ -66,17 +81,32 @@ def agent_request(method: str, path: str, **kwargs: Any) -> requests.Response:
             **kwargs,
         )
     except requests.RequestException:
-        raise HTTPException(status_code=503, detail="The home management agent is offline") from None
-
+        raise HTTPException(
+            status_code=503,
+            detail="The home management agent is offline",
+        ) from None
 
 def proxy(method: str, path: str, request: Request) -> JSONResponse:
-    require_login(request)
-    response = agent_request(method, path, params=request.query_params)
+    _, agent_session = require_login(request)
+
+    response = agent_request(
+        method,
+        path,
+        user_session=agent_session,
+        params=request.query_params,
+    )
+
     try:
         payload = response.json()
     except ValueError:
-        payload = {"detail": "The management agent returned an invalid response"}
-    return JSONResponse(status_code=response.status_code, content=payload)
+        payload = {
+            "detail": "The management agent returned an invalid response"
+        }
+
+    return JSONResponse(
+        status_code=response.status_code,
+        content=payload,
+    )
 
 
 @app.get("/")
@@ -90,31 +120,60 @@ def home(request: Request):
 def health():
     return {"status": "ok"}
 
-
 @app.post("/auth/login")
 def login(credentials: LoginRequest, request: Request):
-    if not PANEL_USERNAME or not PANEL_PASSWORD:
-        raise HTTPException(status_code=503, detail="Panel login is not configured")
-    if not (
-        secrets.compare_digest(credentials.username.strip(), PANEL_USERNAME)
-        and secrets.compare_digest(credentials.password, PANEL_PASSWORD)
-    ):
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+    response = agent_request(
+        "POST",
+        "/auth/login",
+        json={
+            "username": credentials.username.strip(),
+            "password": credentials.password,
+        },
+    )
+
+    try:
+        payload = response.json()
+    except ValueError:
+        raise HTTPException(
+            status_code=502,
+            detail="Invalid response from management agent",
+        )
+
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=payload.get("detail", "Login failed"),
+        )
+
     request.session.clear()
-    request.session["username"] = PANEL_USERNAME
-    return {"username": PANEL_USERNAME}
+    request.session["username"] = payload["username"]
+    request.session["agent_session"] = payload["session_token"]
+
+    return {"username": payload["username"]}
 
 
 @app.get("/auth/me")
 def current_user(request: Request):
-    return {"username": require_login(request)}
+    username, _ = require_login(request)
+    return {"username": username}
 
 
 @app.post("/auth/logout")
 def logout(request: Request):
+    agent_session = request.session.get("agent_session")
+
+    if agent_session:
+        try:
+            agent_request(
+                "POST",
+                "/auth/logout",
+                user_session=agent_session,
+            )
+        except HTTPException:
+            pass
+
     request.session.clear()
     return {"ok": True}
-
 
 @app.get("/vms")
 def list_vms(request: Request):
